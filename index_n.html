@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鞋面變體生成器 | Shoe Variant Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #7c3aed;
+            --accent: #f59e0b;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e293b;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 30% 30%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(124, 58, 237, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            50% {
+                transform: translate(2%, 2%) rotate(5deg);
+            }
+        }
+
+        /* Header */
+        header {
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Image Preview */
+        .image-preview-container {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-placeholder .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .upload-btn {
+            margin-top: 1rem;
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 0.75rem;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Part Selection */
+        .part-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .part-item {
+            position: relative;
+        }
+
+        .part-checkbox {
+            display: none;
+        }
+
+        .part-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .part-label:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .part-checkbox:checked+.part-label {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(124, 58, 237, 0.2));
+            border-color: var(--primary);
+        }
+
+        .part-checkbox:checked+.part-label .check-icon {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        .part-checkbox:checked+.part-label .check-icon::after {
+            opacity: 1;
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .check-icon::after {
+            content: '✓';
+            color: white;
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .part-info {
+            flex: 1;
+        }
+
+        .part-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .part-name-en {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Variant Options */
+        .variant-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .variant-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .variant-options {
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.75rem;
+        }
+
+        .variant-options.active {
+            display: flex;
+        }
+
+        .variant-chip {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .variant-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .variant-chip.selected {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: transparent;
+        }
+
+        /* Custom Input */
+        .custom-input-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--card-border);
+        }
+
+        .custom-input-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .custom-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .custom-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--card-border);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .custom-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .custom-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .custom-apply-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent), #ef4444);
+            border: none;
+            border-radius: 0.75rem;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .custom-apply-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .custom-applied {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+            border-radius: 0.5rem;
+            color: var(--success);
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+        }
+
+        .custom-applied.show {
+            display: flex;
+        }
+
+        /* Generate Button */
+        .generate-section {
+            margin-top: 2rem;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 1rem;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Output Section */
+        .output-card {
+            grid-column: 1 / -1;
+        }
+
+        .prompt-output {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            min-height: 150px;
+            position: relative;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        /* Tips */
+        .tips {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 0.75rem;
+        }
+
+        .tips-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .tips-content {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-animation"></div>
+
+    <header>
+        <h1>👟 鞋面變體生成器</h1>
+        <p class="subtitle">選擇一個部位，快速探索設計可能性</p>
+    </header>
+
+    <main class="main-container">
+        <!-- Left: Image Upload -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">📷</div>
+                <h2 class="card-title">參考圖片</h2>
+            </div>
+
+            <div class="image-preview-container" id="imageContainer">
+                <div class="upload-placeholder" id="placeholder">
+                    <div class="icon">🖼️</div>
+                    <p>拖放圖片到這裡，或</p>
+                    <button class="upload-btn" onclick="document.getElementById('imageInput').click()">選擇圖片</button>
+                </div>
+                <img class="image-preview" id="preview" style="display: none;">
+            </div>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+
+            <div class="tips">
+                <div class="tips-title">💡 使用提示</div>
+                <div class="tips-content">
+                    1. 上傳你的原始鞋款設計圖<br>
+                    2. 選擇<strong>一個</strong>要變動的部位<br>
+                    3. 選擇變體選項<br>
+                    4. 複製提示詞到 Nano Banana Pro 使用
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Part Selection -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #3b82f6);">🎯</div>
+                <h2 class="card-title">選擇要變動的部位</h2>
+            </div>
+
+            <div class="part-grid" id="partGrid">
+                <!-- Parts will be generated by JS -->
+            </div>
+
+            <div class="variant-section" id="variantSection">
+                <div class="variant-title">🔄 變體選項（選擇要改成什麼樣式）</div>
+                <div id="variantContainer"></div>
+            </div>
+
+            <div class="generate-section">
+                <button class="generate-btn" id="generateBtn" disabled>
+                    <span>✨</span>
+                    <span>生成提示詞</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Output -->
+        <div class="card output-card fade-in" id="outputCard" style="display: none;">
+            <div class="card-header">
+                <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">📝</div>
+                <h2 class="card-title">生成的提示詞</h2>
+            </div>
+
+            <div class="prompt-output" id="promptOutput">
+                <button class="copy-btn" id="copyBtn">📋 複製</button>
+                <div id="promptText"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Shoe parts data
+        const shoeParts = [
+            {
+                id: 'lacing',
+                name: '鞋帶系統',
+                nameEn: 'Lacing System',
+                variants: ['傳統繫帶', '快扣系統', '魔鬼氈', 'BOA旋鈕', '鬆緊帶', '無鞋帶一腳蹬', '交叉繫帶', '隱藏式繫帶']
+            },
+            {
+                id: 'toebox',
+                name: '鞋頭片',
+                nameEn: 'Toe Box',
+                variants: ['圓頭', '尖頭', '方頭', '杏仁頭', '開放式', '加厚防撞', '流線型', '寬版舒適型']
+            },
+            {
+                id: 'tongue',
+                name: '鞋舌',
+                nameEn: 'Tongue',
+                variants: ['傳統分離式', '一體成型', '襪套式', '加厚軟墊', '網眼透氣', '不對稱設計', '環繞固定式', '摺疊式']
+            },
+            {
+                id: 'eyelet',
+                name: '鞋眼/繫帶區',
+                nameEn: 'Eyelet Panel',
+                variants: ['傳統金屬孔眼', '隱藏式鞋眼', '環扣式', '交叉系統', 'D形環', '減少孔眼數量', '增加孔眼數量', '不對稱設計']
+            },
+            {
+                id: 'quarter',
+                name: '鞋身側片',
+                nameEn: 'Quarter Panel',
+                variants: ['簡約素面', '透氣網眼', '多層次拼接', '波浪裝飾線', '幾何切割', '透明材質', '反光元素', '刺繡圖案']
+            },
+            {
+                id: 'heel',
+                name: '後套/後跟片',
+                nameEn: 'Heel Counter',
+                variants: ['標準硬挺', '軟質包覆', '外露支撐', '加高設計', '鏤空透氣', '環繞式穩定', 'Y形設計', '可調節式']
+            },
+            {
+                id: 'collar',
+                name: '鞋口',
+                nameEn: 'Collar',
+                variants: ['低筒標準', '中筒款', '高筒款', '加厚軟墊', '彈性襪套', '可調節式', '不對稱設計', '翻折設計']
+            },
+            {
+                id: 'vamp',
+                name: '前幫/鞋面蓋',
+                nameEn: 'Vamp',
+                variants: ['一片式', '多片拼接', '網眼透氣', '編織紋理', '鏤空設計', '皮革質感', '合成材料', '飛織工藝']
+            }
+        ];
+
+        let selectedPart = null;
+        let selectedVariant = null;
+        let uploadedImage = null;
+
+        // Initialize parts grid
+        function initParts() {
+            const grid = document.getElementById('partGrid');
+            grid.innerHTML = shoeParts.map(part => `
+                <div class="part-item">
+                    <input type="radio" name="part" id="${part.id}" class="part-checkbox" value="${part.id}">
+                    <label for="${part.id}" class="part-label">
+                        <div class="check-icon"></div>
+                        <div class="part-info">
+                            <div class="part-name">${part.name}</div>
+                            <div class="part-name-en">${part.nameEn}</div>
+                        </div>
+                    </label>
+                </div>
+            `).join('');
+
+            // Add event listeners
+            document.querySelectorAll('.part-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handlePartSelect);
+            });
+        }
+
+        // Handle part selection
+        function handlePartSelect(e) {
+            selectedPart = shoeParts.find(p => p.id === e.target.value);
+            selectedVariant = null;
+            showVariants(selectedPart);
+            updateGenerateButton();
+        }
+
+        // Show variants for selected part
+        function showVariants(part) {
+            const container = document.getElementById('variantContainer');
+            container.innerHTML = `
+                <div class="variant-options active" id="variantOptions">
+                    ${part.variants.map(v => `
+                        <div class="variant-chip" data-variant="${v}">${v}</div>
+                    `).join('')}
+                </div>
+                <div class="custom-input-section">
+                    <div class="custom-input-label">
+                        <span>✏️</span>
+                        <span>或輸入自訂樣式：</span>
+                    </div>
+                    <div class="custom-input-wrapper">
+                        <input type="text" class="custom-input" id="customVariantInput" 
+                               placeholder="例如：雙層魔鬼氈、復古金屬扣環、運動風彈力帶...">
+                        <button class="custom-apply-btn" id="customApplyBtn">套用自訂</button>
+                    </div>
+                    <div class="custom-applied" id="customApplied">
+                        <span>✅</span>
+                        <span id="customAppliedText">已套用自訂樣式</span>
+                    </div>
+                </div>
+            `;
+
+            // Add click listeners for preset chips
+            document.querySelectorAll('.variant-chip').forEach(chip => {
+                chip.addEventListener('click', handleVariantSelect);
+            });
+
+            // Add listener for custom input
+            document.getElementById('customApplyBtn').addEventListener('click', handleCustomVariant);
+            document.getElementById('customVariantInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleCustomVariant();
+                }
+            });
+        }
+
+        // Handle variant selection (preset)
+        function handleVariantSelect(e) {
+            // Clear all selections
+            document.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('selected'));
+            e.target.classList.add('selected');
+            selectedVariant = e.target.dataset.variant;
+
+            // Clear custom input and hide applied message
+            const customInput = document.getElementById('customVariantInput');
+            if (customInput) {
+                customInput.value = '';
+                document.getElementById('customApplied').classList.remove('show');
+            }
+
+            updateGenerateButton();
+        }
+
+        // Handle custom variant input
+        function handleCustomVariant() {
+            const customInput = document.getElementById('customVariantInput');
+            const customValue = customInput.value.trim();
+
+            if (!customValue) {
+                customInput.focus();
+                customInput.style.borderColor = '#ef4444';
+                setTimeout(() => {
+                    customInput.style.borderColor = '';
+                }, 1000);
+                return;
+            }
+
+            // Clear preset selections
+            document.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('selected'));
+
+            // Set custom variant
+            selectedVariant = customValue;
+
+            // Show applied message
+            document.getElementById('customAppliedText').textContent = `已套用：「${customValue}」`;
+            document.getElementById('customApplied').classList.add('show');
+
+            updateGenerateButton();
+        }
+
+        // Update generate button state
+        function updateGenerateButton() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = !(selectedPart && selectedVariant);
+        }
+
+        // Handle image upload
+        document.getElementById('imageInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    uploadedImage = file.name;
+                    document.getElementById('preview').src = e.target.result;
+                    document.getElementById('preview').style.display = 'block';
+                    document.getElementById('placeholder').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop
+        const imageContainer = document.getElementById('imageContainer');
+        imageContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            imageContainer.style.borderColor = 'var(--primary)';
+        });
+        imageContainer.addEventListener('dragleave', e => {
+            imageContainer.style.borderColor = 'transparent';
+        });
+        imageContainer.addEventListener('drop', e => {
+            e.preventDefault();
+            imageContainer.style.borderColor = 'transparent';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                document.getElementById('imageInput').files = e.dataTransfer.files;
+                document.getElementById('imageInput').dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Generate prompt
+        document.getElementById('generateBtn').addEventListener('click', function () {
+            if (!selectedPart || !selectedVariant) return;
+
+            const prompt = generatePrompt(selectedPart, selectedVariant);
+
+            document.getElementById('outputCard').style.display = 'block';
+            document.getElementById('promptText').textContent = prompt;
+
+            // Scroll to output
+            document.getElementById('outputCard').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Generate prompt text
+        function generatePrompt(part, variant) {
+            const basePrompt = `Edit this shoe design image. Keep the overall design exactly the same, but modify ONLY the ${part.nameEn} (${part.name}).
+
+Modification: Change the ${part.name} to "${variant}" style.
+
+Important instructions:
+- Maintain the exact same viewing angle and perspective
+- Keep all other parts of the shoe unchanged
+- Preserve the original color scheme and materials for other parts
+- The modification should look natural and professional
+- Product photography style, clean white background
+
+要修改的部位：${part.name}
+變體樣式：${variant}`;
+
+            return basePrompt;
+        }
+
+        // Copy prompt
+        document.getElementById('copyBtn').addEventListener('click', function () {
+            const text = document.getElementById('promptText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = this;
+                btn.textContent = '✅ 已複製！';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 複製';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        });
+
+        // Initialize
+        initParts();
+    </script>
+</body>
+
+</html>
